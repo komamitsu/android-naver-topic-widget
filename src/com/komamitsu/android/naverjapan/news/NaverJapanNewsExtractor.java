@@ -48,27 +48,30 @@ public class NaverJapanNewsExtractor {
       @Override
       public void startElement(String uri, String localName, String qName,
           Attributes atts) throws SAXException {
-        if (news == null && qName.equals("li")) {
-          String datana = atts.getValue("data-na");
-          if (datana != null) {
-            Matcher m = DATA_NA_RANK.matcher(datana);
-            if (m != null && m.find()) {
-              String ranking = m.group(1);
-              news = new NaverJapanNews();
-              news.setRank(Integer.valueOf(ranking));
+        // Log.d(getClass().getName(), "endElement: uri=" + uri + ", localName=" + localName + ", qName=" + qName);
+        if (news == null) {
+          if (qName.equals("li")) {
+            String datana = atts.getValue("data-na");
+            if (datana != null) {
+              Matcher m = DATA_NA_RANK.matcher(datana);
+              if (m != null && m.find()) {
+                String ranking = m.group(1);
+                news = new NaverJapanNews();
+                news.setRank(Integer.valueOf(ranking));
+              }
             }
           }
         }
         else {
-          if (qName.equals("a")) {
+          if (qName.equals("a") && atts != null) {
             String url = atts.getValue("href");
             news.setUrlOfLink(url);
           }
-          else if (qName.equals("img")) {
+          else if (qName.equals("img") && atts != null) {
             String url = atts.getValue("src");
             news.setUrlOfImage(url);
           }
-          else if (qName.equals("span")) {
+          else if (qName.equals("span") && atts != null) {
             String clazz = atts.getValue("class");
             
             if (clazz.equals("title")) {
@@ -78,7 +81,7 @@ public class NaverJapanNewsExtractor {
               isDetail = true;
             }
           }
-          else if (qName.equals("em")) {
+          else if (qName.equals("em") && atts != null) {
             String clazz = atts.getValue("class");
             if (clazz.equals("time")) {
               isTime = true;
