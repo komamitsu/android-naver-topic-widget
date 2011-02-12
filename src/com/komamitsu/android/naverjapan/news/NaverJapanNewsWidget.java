@@ -36,11 +36,12 @@ import android.util.Log;
 import android.widget.RemoteViews;
 
 public class NaverJapanNewsWidget extends AppWidgetProvider {
-    private static final int TOPIC_INTERVAL_SEC = 50;
+    private static final int TOPIC_INTERVAL_SEC = 6;
     private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
     private static final String ACTION_NEWS_CHANGE = "com.komamitsu.android.naverjapan.news.NaverJapanNewsWidget";
     private static int newsIndex = 0;
     private static List<NaverJapanNews> newsList;
+    private AlarmManager am;
     
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager,
@@ -78,37 +79,39 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-      Log.i(getClass().getName(), "onReceive");
       super.onReceive(context, intent);
-      context.startService(new Intent(context, UpdateService.class));
-      setAlarm(context);
+      if (intent.getAction().equals(ACTION_NEWS_CHANGE)) {
+        context.startService(new Intent(context, UpdateService.class));
+      }
+//      setAlarm(context);
+    }
+    
+    @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+      super.onDeleted(context, appWidgetIds);
+      am.cancel(null);
     }
 
     private void setAlarm(Context context) {
       Intent alarmIntent = new Intent(context, NaverJapanNewsWidget.class);
       alarmIntent.setAction(ACTION_NEWS_CHANGE);
       PendingIntent operation = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
+      /*
       AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
       long now = System.currentTimeMillis();
       am.set(AlarmManager.RTC, now + TOPIC_INTERVAL_SEC * 1000, operation);
-      /*
-      // We want the alarm to go off 30 seconds from now.
-      long firstTime = SystemClock.elapsedRealtime();
-
-      // Schedule the alarm!
-      AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-      am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                      firstTime, 30*1000, operation);
       */
-
-      Log.i(getClass().getName(), "Alarm was set");
+      long firstTime = SystemClock.elapsedRealtime();
+      if (am == null) {
+        am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+      }
+      am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                      firstTime, TOPIC_INTERVAL_SEC * 1000, operation);
     }
 
     public static class UpdateService extends Service {
         @Override
         public void onStart(Intent intent, int startId) {
-            Log.i(getClass().getName(), "Updating NAVER Japan news");
-            
             RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
             NaverJapanNews news = getNextNews();
             
@@ -119,7 +122,8 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
                   Bitmap b = BitmapFactory.decodeStream(imageStream);
                   updateViews.setImageViewBitmap(R.id.news_image, b);
                 }
-                updateViews.setTextViewText(R.id.news_title, news.getTitle());
+                String title = news.getRank() + "位 :  " + news.getTitle();
+                updateViews.setTextViewText(R.id.news_title, title);
                 updateViews.setTextViewText(R.id.news_detail, news.getDetail());
                 updateViews.setTextViewText(R.id.news_time, news.getTime());
             }

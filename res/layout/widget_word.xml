@@ -3,29 +3,60 @@
     android:id="@+id/widget"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:background="#333333"
+    android:background="#444444"
     android:focusable="true">
+
+	<TextView
+        android:id="@+id/news_top_bar"
+        android:layout_width="fill_parent"
+        android:layout_height="4dip"
+        android:layout_alignParentTop="true"
+        android:background="#339933"
+	/>
+
+	<TextView
+        android:id="@+id/news_bottom_bar"
+        android:layout_width="fill_parent"
+        android:layout_height="4dip"
+        android:layout_alignParentBottom="true"
+        android:background="#339933"
+	/>
 
     <ImageView
         android:id="@+id/news_image"
         android:layout_width="wrap_content"
         android:layout_height="fill_parent"
+	    android:layout_below="@id/news_top_bar"
+	    android:layout_above="@id/news_bottom_bar"
         android:layout_alignParentLeft="true"
         android:src="@drawable/news_image"
-        android:paddingTop="3dip"
-        android:paddingBottom="3dip"
+        android:padding="3dip"
     />
 
 	<RelativeLayout
 	        android:layout_width="fill_parent"
 	        android:layout_height="fill_parent"
 	        android:layout_toRightOf="@id/news_image"
-	        android:layout_alignParentRight="true">
+		    android:layout_below="@id/news_top_bar"
+	        android:layout_alignParentRight="true"
+        	android:padding="3dip"
+    >
 	    <TextView
 	        android:id="@+id/news_title"
 	        android:layout_width="fill_parent"
 	        android:layout_height="wrap_content"
 	        android:layout_alignParentTop="true"
+	        android:textSize="16dip"
+	        android:textStyle="bold"
+	        android:textColor="#ffffff"
+	    />
+	    <TextView
+	        android:id="@+id/news_time"
+	        android:layout_width="fill_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentBottom="true"
+	        android:textSize="13dip"
+	        android:textColor="#888888"
 	    />
 	    <TextView
 	        android:id="@+id/news_detail"
@@ -33,13 +64,8 @@
 	        android:layout_height="fill_parent"
 	        android:layout_centerInParent="true"
 	        android:layout_below="@id/news_title"
-	    />
-	    <TextView
-	        android:id="@+id/news_time"
-	        android:layout_width="fill_parent"
-	        android:layout_height="fill_parent"
-	        android:layout_alignParentBottom="true"
-	        android:layout_below="@id/news_detail"
+	        android:layout_above="@id/news_time"
+	        android:textSize="13dip"
 	    />
 	</RelativeLayout>
 </RelativeLayout>

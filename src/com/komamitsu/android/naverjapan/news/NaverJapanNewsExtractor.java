@@ -132,7 +132,9 @@ public class NaverJapanNewsExtractor {
         // System.out.println("endElement: uri=" + uri + ", localName=" + localName + ", qName=" + qName);
         if (news != null) {
           if (qName.equals("li")) {
-            result.add(news);
+            if (news.getTitle() != null && news.getDetail() != null && news.getTime() != null) {
+              result.add(news);
+            }
             news = null;
           }
           else if (qName.equals("strong")) {
@@ -141,6 +143,8 @@ public class NaverJapanNewsExtractor {
           else if (qName.equals("span")) {
             if (isTitleSpan) isTitleSpan = false;
             if (isDetail) isDetail = false;
+          }
+          else if (qName.equals("em")) {
             if (isTime) isTime = false;
           }
         }
