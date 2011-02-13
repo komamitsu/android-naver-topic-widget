@@ -41,7 +41,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     private static final String ACTION_NEWS_CHANGE = "com.komamitsu.android.naverjapan.news.NaverJapanNewsWidget";
     private static int newsIndex = 0;
     private static List<NaverJapanNews> newsList;
-    private AlarmManager am;
+    private static AlarmManager am;
     
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager,
@@ -103,7 +103,11 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
       */
       long firstTime = SystemClock.elapsedRealtime();
       if (am == null) {
-        am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+        synchronized (getClass()) {
+          if (am == null) {
+            am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+          }
+        }
       }
       am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
                       firstTime, TOPIC_INTERVAL_SEC * 1000, operation);
@@ -114,6 +118,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
         public void onStart(Intent intent, int startId) {
             RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
             NaverJapanNews news = getNextNews();
+            Log.i(getClass().getName(), "Next news: " + news);
             
             final DefaultHttpClient client = new DefaultHttpClient();
             try {

@@ -132,7 +132,9 @@ public class NaverJapanNewsExtractor {
         // System.out.println("endElement: uri=" + uri + ", localName=" + localName + ", qName=" + qName);
         if (news != null) {
           if (qName.equals("li")) {
-            if (news.getTitle() != null && news.getDetail() != null && news.getTime() != null) {
+            if (news.getTitle().length() > 0 &&
+                news.getDetail().length() > 0 &&
+                news.getTime().length() > 0) {
               result.add(news);
             }
             news = null;
