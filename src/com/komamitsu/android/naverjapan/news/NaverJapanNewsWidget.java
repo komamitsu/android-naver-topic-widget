@@ -89,18 +89,28 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
       super.onDeleted(context, appWidgetIds);
-      am.cancel(null);
+      if (am != null) {
+        PendingIntent pendingIntent = getActionNewsChangeIntent(context);
+        am.cancel(pendingIntent);
+        Log.i(getClass().getName(), "Canceled AlarmManager");
+      }
+      Log.i(getClass().getName(), "onDeleted");
+    }
+    
+    @Override
+    public void onDisabled(Context context) {
+      super.onDisabled(context);
+      Log.i(getClass().getName(), "onDisabled");
+    }
+
+    @Override
+    public void onEnabled(Context context) {
+      super.onEnabled(context);
+      Log.i(getClass().getName(), "onEnabled");
     }
 
     private void setAlarm(Context context) {
-      Intent alarmIntent = new Intent(context, NaverJapanNewsWidget.class);
-      alarmIntent.setAction(ACTION_NEWS_CHANGE);
-      PendingIntent operation = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
-      /*
-      AlarmManager am = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-      long now = System.currentTimeMillis();
-      am.set(AlarmManager.RTC, now + TOPIC_INTERVAL_SEC * 1000, operation);
-      */
+      PendingIntent pendingIntent = getActionNewsChangeIntent(context);
       long firstTime = SystemClock.elapsedRealtime();
       if (am == null) {
         synchronized (getClass()) {
@@ -110,7 +120,14 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
         }
       }
       am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                      firstTime, TOPIC_INTERVAL_SEC * 1000, operation);
+                      firstTime, TOPIC_INTERVAL_SEC * 1000, pendingIntent);
+    }
+    
+    private PendingIntent getActionNewsChangeIntent(Context context) {
+      Intent alarmIntent = new Intent(context, NaverJapanNewsWidget.class);
+      alarmIntent.setAction(ACTION_NEWS_CHANGE);
+      PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
+      return pendingIntent;
     }
 
     public static class UpdateService extends Service {
