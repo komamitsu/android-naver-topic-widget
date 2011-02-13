@@ -114,42 +114,46 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     }
 
     public static class UpdateService extends Service {
-        @Override
-        public void onStart(Intent intent, int startId) {
-            RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
-            NaverJapanNews news = getNextNews();
-            Log.i(getClass().getName(), "Next news: " + news);
-            
-            final DefaultHttpClient client = new DefaultHttpClient();
-            try {
-                InputStream imageStream = Utils.getInputStreamViaHttp(client, news.getUrlOfImage());
-                if (imageStream != null) {
-                  Bitmap b = BitmapFactory.decodeStream(imageStream);
-                  updateViews.setImageViewBitmap(R.id.news_image, b);
-                }
-                String title = news.getRank() + "位 :  " + news.getTitle();
-                updateViews.setTextViewText(R.id.news_title, title);
-                updateViews.setTextViewText(R.id.news_detail, news.getDetail());
-                updateViews.setTextViewText(R.id.news_time, news.getTime());
-                Intent webIntent = new Intent(Intent.ACTION_VIEW , Uri.parse(news.getUrlOfLink()));
-                PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, webIntent, 0);
-                updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
+      @Override
+      public void onStart(Intent intent, int startId) {
+        RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
+        NaverJapanNews news = getNextNews();
+        Log.i(getClass().getName(), "Next news: " + news);
+        
+        final DefaultHttpClient client = new DefaultHttpClient();
+        try {
+          if (news.getImage() == null) {
+            InputStream imageStream = Utils.getInputStreamViaHttp(client, news.getUrlOfImage());
+            if (imageStream != null) {
+              Bitmap b = BitmapFactory.decodeStream(imageStream);
+              news.setImage(b);
+              Log.i(getClass().getName(), "Downloaded the news image: " + news.getUrlOfImage());
             }
-            finally {
-              if (client != null && client.getConnectionManager() != null) {
-                client.getConnectionManager().shutdown();
-              }
-            }
+          }
+          updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
+          String title = news.getRank() + "位 :  " + news.getTitle();
+          updateViews.setTextViewText(R.id.news_title, title);
+          updateViews.setTextViewText(R.id.news_detail, news.getDetail());
+          updateViews.setTextViewText(R.id.news_time, news.getTime());
+          Intent webIntent = new Intent(Intent.ACTION_VIEW , Uri.parse(news.getUrlOfLink()));
+          PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, webIntent, 0);
+          updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
+        }
+        finally {
+          if (client != null && client.getConnectionManager() != null) {
+            client.getConnectionManager().shutdown();
+          }
+        }
 
-            ComponentName thisWidget = new ComponentName(this, NaverJapanNewsWidget.class);
-            AppWidgetManager manager = AppWidgetManager.getInstance(this);
-            manager.updateAppWidget(thisWidget, updateViews);
-        }
-        
-        
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
+        ComponentName thisWidget = new ComponentName(this, NaverJapanNewsWidget.class);
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        manager.updateAppWidget(thisWidget, updateViews);
+      }
+      
+      
+      @Override
+      public IBinder onBind(Intent intent) {
+          return null;
+      }
     }
 }

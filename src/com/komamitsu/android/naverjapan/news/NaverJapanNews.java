@@ -1,5 +1,7 @@
 package com.komamitsu.android.naverjapan.news;
 
+import android.graphics.Bitmap;
+
 public class NaverJapanNews {
   private int rank;
   private String title = "";
@@ -7,6 +9,7 @@ public class NaverJapanNews {
   private String time = "";
   private String urlOfImage = "";
   private String urlOfLink = "";
+  private Bitmap image;
   
   /**
    * @param rank the rank to set
@@ -81,21 +84,18 @@ public class NaverJapanNews {
     return urlOfLink;
   }
   
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-  @Override
-  public boolean equals(Object o) {
-    NaverJapanNews n = (NaverJapanNews) o;
-    return
-      n.getRank() == getRank() &&
-      n.getTitle().equals(getTitle()) &&
-      n.getTime().equals(getTime()) &&
-      n.getDetail().equals(getDetail()) &&
-      n.getUrlOfImage().equals(getUrlOfImage()) &&
-      n.getUrlOfLink().equals(getUrlOfLink());
+  /**
+   * @return the image
+   */
+  public Bitmap getImage() {
+    return image;
   }
-  */
-  
+  /**
+   * @param image the image to set
+   */
+  public void setImage(Bitmap image) {
+    this.image = image;
+  }
   /* (non-Javadoc)
    * @see java.lang.Object#toString()
    */
