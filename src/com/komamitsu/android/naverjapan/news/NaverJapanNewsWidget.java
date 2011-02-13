@@ -131,6 +131,9 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
                 updateViews.setTextViewText(R.id.news_title, title);
                 updateViews.setTextViewText(R.id.news_detail, news.getDetail());
                 updateViews.setTextViewText(R.id.news_time, news.getTime());
+                Intent webIntent = new Intent(Intent.ACTION_VIEW , Uri.parse(news.getUrlOfLink()));
+                PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, webIntent, 0);
+                updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
             }
             finally {
               if (client != null && client.getConnectionManager() != null) {

@@ -4,7 +4,9 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:background="#444444"
-    android:focusable="true">
+    android:focusable="true"
+    android:clickable="true"
+>
 
 	<TextView
         android:id="@+id/news_top_bar"
