@@ -31,8 +31,7 @@
 	    android:layout_below="@id/news_top_bar"
 	    android:layout_above="@id/news_bottom_bar"
         android:layout_alignParentLeft="true"
-        android:src="@drawable/news_image"
-        android:padding="3dip"
+        android:padding="3dp"
     />
 
 	<RelativeLayout
@@ -41,7 +40,10 @@
 	        android:layout_toRightOf="@id/news_image"
 		    android:layout_below="@id/news_top_bar"
 	        android:layout_alignParentRight="true"
-        	android:padding="3dip"
+        	android:paddingTop="1dip"
+        	android:paddingLeft="3dip"
+        	android:paddingRight="3dip"
+        	android:paddingBottom="3dip"
     >
 	    <TextView
 	        android:id="@+id/news_title"
