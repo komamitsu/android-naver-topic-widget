@@ -2,6 +2,7 @@ package com.komamitsu.android.naverjapan.news;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.WeakHashMap;
 
 import org.apache.http.impl.client.DefaultHttpClient;
 
@@ -23,46 +24,47 @@ import android.widget.RemoteViews;
 
 public class NaverJapanNewsWidget extends AppWidgetProvider {
   private static final String TAG = NaverJapanNewsWidget.class.getSimpleName();
-  private static final int TOPIC_INTERVAL_SEC = 6;
-  private static final int TOPIC_REFRESH_SEC = 300;
+  private static final int TOPIC_INTERVAL_SEC = 8;
+  private static final int TOPIC_REFRESH_SEC = 600;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
   private static final String ACTION_NEWS_CHANGE = NaverJapanNewsWidget.class.getName() + ".CHANGE";
   private static int newsIndex = 0;
   private static long lastUpdateTime = -1;
   private static List<NaverJapanNews> newsList;
+  private static boolean running;
   private AlarmManager am;
 
   @Override
   public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+    Log.d(TAG, "NaverJapanNewsWidget.onUpdate");
+    running = true;
     setAlarm(context);
   }
 
   public static NaverJapanNews getNextNews() {
+    boolean shouldDownLoadNews = newsList == null;
     long now = System.currentTimeMillis();
     if (now > lastUpdateTime + TOPIC_REFRESH_SEC * 1000) {
       Log.i(TAG, "getNextNews(): refresh newsList");
       lastUpdateTime = now;
-      newsList = null;
+      shouldDownLoadNews = true;
     }
-    if (newsList == null) {
-      synchronized (NaverJapanNewsWidget.class) {
-        if (newsList == null) {
-          final DefaultHttpClient client = new DefaultHttpClient();
+
+    if (shouldDownLoadNews) {
+      final DefaultHttpClient client = new DefaultHttpClient();
+      try {
+        InputStream topPageContent = Utils.getInputStreamViaHttp(client, NAVER_JAPAN_URL);
+        if (topPageContent != null) {
+          NaverJapanNewsExtractor extractor = NaverJapanNewsExtractor.getInstance();
           try {
-            InputStream topPageContent = Utils.getInputStreamViaHttp(client, NAVER_JAPAN_URL);
-            if (topPageContent != null) {
-              NaverJapanNewsExtractor extractor = NaverJapanNewsExtractor.getInstance();
-              try {
-                newsList = extractor.extract(topPageContent);
-              } catch (NaverJapanNewsParseException e) {
-                Log.e(TAG, "Failed to parse NAVER Japan top page (NaverJapanNewsParseException)", e);
-              }
-            }
-          } finally {
-            if (client != null && client.getConnectionManager() != null) {
-              client.getConnectionManager().shutdown();
-            }
+            newsList = extractor.extract(topPageContent);
+          } catch (NaverJapanNewsParseException e) {
+            Log.e(TAG, "Failed to parse NAVER Japan top page (NaverJapanNewsParseException)", e);
           }
+        }
+      } finally {
+        if (client != null && client.getConnectionManager() != null) {
+          client.getConnectionManager().shutdown();
         }
       }
     }
@@ -129,12 +131,23 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
       final DefaultHttpClient client = new DefaultHttpClient();
       try {
         if (news.getImage() == null) {
-          InputStream imageStream = Utils.getInputStreamViaHttp(client, news.getUrlOfImage());
-          if (imageStream != null) {
-            Bitmap b = BitmapFactory.decodeStream(imageStream);
-            news.setImage(b);
-            Log.i(TAG, "Downloaded the news image: " + news.getUrlOfImage());
+          Bitmap b = null;
+          String urlOfImage = news.getUrlOfImage();
+          // debug
+          for (String key : imageCache.keySet())
+            Log.d(TAG, "#### " + key);
+          if (imageCache.containsKey(urlOfImage)) {
+            b = imageCache.get(urlOfImage);
+            Log.d(TAG, "Found a image in cache: " + urlOfImage);
+          } else {
+            InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
+            if (imageStream != null) {
+              b = BitmapFactory.decodeStream(imageStream);
+              Log.d(TAG, "Downloaded the news image: " + urlOfImage);
+              imageCache.put(urlOfImage, b);
+            }
           }
+          news.setImage(b);
         }
         updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
         String title = news.getRank() + "位 :  " + news.getTitle();
