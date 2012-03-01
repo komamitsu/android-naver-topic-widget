@@ -79,7 +79,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
   @Override
   public void onReceive(Context context, Intent intent) {
     super.onReceive(context, intent);
-    if (intent.getAction().equals(ACTION_NEWS_CHANGE)) {
+    if (running && intent.getAction().equals(ACTION_NEWS_CHANGE)) {
       context.startService(new Intent(context, UpdateService.class));
     }
   }
@@ -90,9 +90,12 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     if (am != null) {
       PendingIntent pendingIntent = getActionNewsChangeIntent(context);
       am.cancel(pendingIntent);
-      Log.i(TAG, "Canceled AlarmManager");
+      Log.i(TAG, "NaverJapanNewsWidget.onDelete(): Canceled AlarmManager");
     }
-    Log.i(TAG, "onDeleted");
+
+    running = false;
+    context.stopService(new Intent(context, UpdateService.class));
+    Log.i(TAG, "NaverJapanNewsWidget.onDeleted");
   }
 
   @Override
@@ -122,8 +125,29 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
   }
 
   public static class UpdateService extends Service {
+    private static WeakHashMap<String, Bitmap> imageCache = new WeakHashMap<String, Bitmap>();
+
+    @Override
+    public void onCreate() {
+      Log.d(TAG, "UpdateService.onCreate()");
+      super.onCreate();
+    }
+
+    @Override
+    public void onDestroy() {
+      Log.d(TAG, "UpdateService.onDestory()");
+      super.onDestroy();
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+      Log.d(TAG, "UpdateService.onUnbind()");
+      return super.onUnbind(intent);
+    }
+
     @Override
     public void onStart(Intent intent, int startId) {
+      Log.d(TAG, "UpdateService.onStart()");
       RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
       NaverJapanNews news = getNextNews();
       // Log.i(TAG, "Next news: " + news);
@@ -170,6 +194,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
 
     @Override
     public IBinder onBind(Intent intent) {
+      Log.d(TAG, "UpdateService.onBind()");
       return null;
     }
   }
