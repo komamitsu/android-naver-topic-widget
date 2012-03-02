@@ -24,20 +24,17 @@ import android.widget.RemoteViews;
 
 public class NaverJapanNewsWidget extends AppWidgetProvider {
   private static final String TAG = NaverJapanNewsWidget.class.getSimpleName();
-  private static final int TOPIC_INTERVAL_SEC = 8;
-  private static final int TOPIC_REFRESH_SEC = 600;
+  private static final int TOPIC_INTERVAL_SEC = 10;
+  private static final int TOPIC_REFRESH_SEC = 900;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
-  private static final String ACTION_NEWS_CHANGE = NaverJapanNewsWidget.class.getName() + ".CHANGE";
   private static int newsIndex = 0;
   private static long lastUpdateTime = -1;
   private static List<NaverJapanNews> newsList;
-  private static boolean running;
-  private AlarmManager am;
+  private PendingIntent service;
 
   @Override
   public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
     Log.d(TAG, "NaverJapanNewsWidget.onUpdate");
-    running = true;
     setAlarm(context);
   }
 
@@ -77,77 +74,26 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
   }
 
   @Override
-  public void onReceive(Context context, Intent intent) {
-    super.onReceive(context, intent);
-    if (running && intent.getAction().equals(ACTION_NEWS_CHANGE)) {
-      context.startService(new Intent(context, UpdateService.class));
-    }
-  }
-
-  @Override
-  public void onDeleted(Context context, int[] appWidgetIds) {
-    super.onDeleted(context, appWidgetIds);
-    if (am != null) {
-      PendingIntent pendingIntent = getActionNewsChangeIntent(context);
-      am.cancel(pendingIntent);
-      Log.i(TAG, "NaverJapanNewsWidget.onDelete(): Canceled AlarmManager");
-    }
-
-    running = false;
-    context.stopService(new Intent(context, UpdateService.class));
-    Log.i(TAG, "NaverJapanNewsWidget.onDeleted");
-  }
-
-  @Override
   public void onDisabled(Context context) {
-    super.onDisabled(context);
-    Log.i(TAG, "onDisabled");
-  }
-
-  @Override
-  public void onEnabled(Context context) {
-    super.onEnabled(context);
-    Log.i(TAG, "onEnabled");
+    AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    am.cancel(service);
   }
 
   private void setAlarm(Context context) {
-    PendingIntent pendingIntent = getActionNewsChangeIntent(context);
+    final Intent intent = new Intent(context, UpdateService.class);
+    if (service == null) {
+      service = PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+    }
     long firstTime = SystemClock.elapsedRealtime();
-    am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, TOPIC_INTERVAL_SEC * 1000, pendingIntent);
-  }
-
-  private PendingIntent getActionNewsChangeIntent(Context context) {
-    Intent alarmIntent = new Intent(context, NaverJapanNewsWidget.class);
-    alarmIntent.setAction(ACTION_NEWS_CHANGE);
-    PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
-    return pendingIntent;
+    AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, TOPIC_INTERVAL_SEC * 1000, service);
   }
 
   public static class UpdateService extends Service {
     private static WeakHashMap<String, Bitmap> imageCache = new WeakHashMap<String, Bitmap>();
 
     @Override
-    public void onCreate() {
-      Log.d(TAG, "UpdateService.onCreate()");
-      super.onCreate();
-    }
-
-    @Override
-    public void onDestroy() {
-      Log.d(TAG, "UpdateService.onDestory()");
-      super.onDestroy();
-    }
-
-    @Override
-    public boolean onUnbind(Intent intent) {
-      Log.d(TAG, "UpdateService.onUnbind()");
-      return super.onUnbind(intent);
-    }
-
-    @Override
-    public void onStart(Intent intent, int startId) {
-      Log.d(TAG, "UpdateService.onStart()");
+    public int onStartCommand(Intent intent, int flags, int startId) {
       RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
       NaverJapanNews news = getNextNews();
       // Log.i(TAG, "Next news: " + news);
@@ -190,11 +136,11 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
       ComponentName thisWidget = new ComponentName(this, NaverJapanNewsWidget.class);
       AppWidgetManager manager = AppWidgetManager.getInstance(this);
       manager.updateAppWidget(thisWidget, updateViews);
+      return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-      Log.d(TAG, "UpdateService.onBind()");
       return null;
     }
   }
