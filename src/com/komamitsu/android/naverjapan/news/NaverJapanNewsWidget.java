@@ -11,9 +11,11 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -26,15 +28,44 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
   private static final String TAG = NaverJapanNewsWidget.class.getSimpleName();
   private static final int TOPIC_INTERVAL_SEC = 10;
   private static final int TOPIC_REFRESH_SEC = 900;
+  private static final int REQUEST_CODE = 0;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
   private static int newsIndex = 0;
   private static long lastUpdateTime = -1;
   private static List<NaverJapanNews> newsList;
-  private PendingIntent service;
+  private static PendingIntent service;
+  private static BroadcastReceiver wakeupReceiver;
+  private static BroadcastReceiver sleepReceiver;
+
+  @Override
+  public void onEnabled(Context context) {
+    super.onEnabled(context);
+    Log.d(TAG, "NaverJapanNewsWidget.onEnabled() : this=" + this);
+
+    // set screen on receiver
+    wakeupReceiver = new BroadcastReceiver() {
+      @Override
+      public void onReceive(Context context, Intent intent) {
+        Log.d(TAG, "Waking up!");
+        setAlarm(context);
+      }
+    };
+    context.getApplicationContext().registerReceiver(wakeupReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
+
+    // set screen off receiver
+    sleepReceiver = new BroadcastReceiver() {
+      @Override
+      public void onReceive(Context context, Intent intent) {
+        Log.d(TAG, "Going to sleep...");
+        cancelAlarm(context);
+      }
+    };
+    context.getApplicationContext().registerReceiver(sleepReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+  }
 
   @Override
   public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-    Log.d(TAG, "NaverJapanNewsWidget.onUpdate");
+    Log.d(TAG, "NaverJapanNewsWidget.onUpdate(): this=" + this);
     setAlarm(context);
   }
 
@@ -74,19 +105,35 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
   }
 
   @Override
-  public void onDisabled(Context context) {
-    AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    am.cancel(service);
+  public void onDeleted(Context context, int[] appWidgetIds) {
+    Log.d(TAG, "NaverJapanNewsWidget.onDelete(): this=" + this);
+    cancelAlarm(context);
+    context.stopService(new Intent(context, UpdateService.class));
+
+    if (wakeupReceiver != null)
+      context.unregisterReceiver(wakeupReceiver);
+
+    if (sleepReceiver != null)
+      context.unregisterReceiver(sleepReceiver);
+
+    super.onDeleted(context, appWidgetIds);
   }
 
   private void setAlarm(Context context) {
+    Log.d(TAG, "NaverJapanNewsWidget.setAlarm() this=" + this);
     final Intent intent = new Intent(context, UpdateService.class);
     if (service == null) {
-      service = PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+      service = PendingIntent.getService(context, REQUEST_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT);
     }
     long firstTime = SystemClock.elapsedRealtime();
     AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, TOPIC_INTERVAL_SEC * 1000, service);
+    long interval = TOPIC_INTERVAL_SEC * 1000;
+    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, interval, service);
+  }
+
+  private void cancelAlarm(Context context) {
+    AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    am.cancel(service);
   }
 
   public static class UpdateService extends Service {
