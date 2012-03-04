@@ -170,7 +170,7 @@ public class Extractor {
       parser.setFeature(Parser.namespacesFeature, false);
       parser.setFeature(Parser.ignoreBogonsFeature, false);
       parser.setContentHandler(contentHandler);
-      parser.parse(new InputSource(new BufferedInputStream(is)));
+      parser.parse(new InputSource(new BufferedInputStream(is, 8192)));
     } catch (Exception e) {
       e.printStackTrace();
       String msg = "HTML Parse error";

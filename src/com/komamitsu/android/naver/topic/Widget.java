@@ -26,7 +26,7 @@ import android.widget.RemoteViews;
 
 public class Widget extends AppWidgetProvider {
   private static final String TAG = Widget.class.getSimpleName();
-  private static final int TOPIC_INTERVAL_SEC = 12;
+  private static final int TOPIC_INTERVAL_SEC = 15;
   private static final int TOPIC_REFRESH_SEC = 1200;
   private static final int REQUEST_CODE = 0;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
@@ -40,13 +40,13 @@ public class Widget extends AppWidgetProvider {
   @Override
   public void onEnabled(Context context) {
     super.onEnabled(context);
-    Log.d(TAG, "NaverJapanNewsWidget.onEnabled() : this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled() : this=" + this);
 
     // set screen on receiver
     wakeupReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(Context context, Intent intent) {
-        Log.d(TAG, "Waking up!");
+        MyLog.d(TAG, "Waking up!");
         setAlarm(context);
       }
     };
@@ -56,7 +56,7 @@ public class Widget extends AppWidgetProvider {
     sleepReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(Context context, Intent intent) {
-        Log.d(TAG, "Going to sleep...");
+        MyLog.d(TAG, "Going to sleep...");
         cancelAlarm(context);
       }
     };
@@ -65,7 +65,7 @@ public class Widget extends AppWidgetProvider {
 
   @Override
   public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-    Log.d(TAG, "NaverJapanNewsWidget.onUpdate(): this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onUpdate(): this=" + this);
     setAlarm(context);
   }
 
@@ -106,7 +106,7 @@ public class Widget extends AppWidgetProvider {
 
   @Override
   public void onDeleted(Context context, int[] appWidgetIds) {
-    Log.d(TAG, "NaverJapanNewsWidget.onDelete(): this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onDelete(): this=" + this);
     cancelAlarm(context);
     context.stopService(new Intent(context, UpdateService.class));
 
@@ -120,7 +120,7 @@ public class Widget extends AppWidgetProvider {
   }
 
   private void setAlarm(Context context) {
-    Log.d(TAG, "NaverJapanNewsWidget.setAlarm() this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.setAlarm() this=" + this);
     final Intent intent = new Intent(context, UpdateService.class);
     if (service == null) {
       service = PendingIntent.getService(context, REQUEST_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT);
@@ -151,16 +151,18 @@ public class Widget extends AppWidgetProvider {
           Bitmap b = null;
           String urlOfImage = news.getUrlOfImage();
           // debug
-          for (String key : imageCache.keySet())
-            Log.d(TAG, "#### " + key);
+          if (Config.isDebug) {
+            for (String key : imageCache.keySet())
+              Log.d(TAG, "#### " + key);
+          }
           if (imageCache.containsKey(urlOfImage)) {
             b = imageCache.get(urlOfImage);
-            Log.d(TAG, "Found a image in cache: " + urlOfImage);
+            MyLog.d(TAG, "Found a image in cache: " + urlOfImage);
           } else {
             InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
             if (imageStream != null) {
               b = BitmapFactory.decodeStream(imageStream);
-              Log.d(TAG, "Downloaded the news image: " + urlOfImage);
+              MyLog.d(TAG, "Downloaded the news image: " + urlOfImage);
               imageCache.put(urlOfImage, b);
             }
           }
