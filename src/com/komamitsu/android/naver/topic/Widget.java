@@ -26,8 +26,8 @@ import android.widget.RemoteViews;
 
 public class Widget extends AppWidgetProvider {
   private static final String TAG = Widget.class.getSimpleName();
-  private static final int TOPIC_INTERVAL_SEC = 10;
-  private static final int TOPIC_REFRESH_SEC = 900;
+  private static final int TOPIC_INTERVAL_SEC = 12;
+  private static final int TOPIC_REFRESH_SEC = 1200;
   private static final int REQUEST_CODE = 0;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
   private static int newsIndex = 0;
