@@ -1,4 +1,4 @@
-package com.komamitsu.android.naverjapan.news;
+package com.komamitsu.android.naver.topic;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +30,7 @@ public class Utils {
     } catch (IOException e) {
       Log.e("com.komamitsu.android.naverjapan.news.Utils", "Failed to get InputStream from " + url, e);
     }
-    
+
     return is;
   }
 }

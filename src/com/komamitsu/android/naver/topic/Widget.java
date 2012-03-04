@@ -1,4 +1,4 @@
-package com.komamitsu.android.naverjapan.news;
+package com.komamitsu.android.naver.topic;
 
 import java.io.InputStream;
 import java.util.List;
@@ -24,15 +24,15 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.RemoteViews;
 
-public class NaverJapanNewsWidget extends AppWidgetProvider {
-  private static final String TAG = NaverJapanNewsWidget.class.getSimpleName();
+public class Widget extends AppWidgetProvider {
+  private static final String TAG = Widget.class.getSimpleName();
   private static final int TOPIC_INTERVAL_SEC = 10;
   private static final int TOPIC_REFRESH_SEC = 900;
   private static final int REQUEST_CODE = 0;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
   private static int newsIndex = 0;
   private static long lastUpdateTime = -1;
-  private static List<NaverJapanNews> newsList;
+  private static List<Topic> newsList;
   private static PendingIntent service;
   private static BroadcastReceiver wakeupReceiver;
   private static BroadcastReceiver sleepReceiver;
@@ -69,7 +69,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     setAlarm(context);
   }
 
-  public static NaverJapanNews getNextNews() {
+  public static Topic getNextNews() {
     boolean shouldDownLoadNews = newsList == null;
     long now = System.currentTimeMillis();
     if (now > lastUpdateTime + TOPIC_REFRESH_SEC * 1000) {
@@ -83,10 +83,10 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
       try {
         InputStream topPageContent = Utils.getInputStreamViaHttp(client, NAVER_JAPAN_URL);
         if (topPageContent != null) {
-          NaverJapanNewsExtractor extractor = NaverJapanNewsExtractor.getInstance();
+          Extractor extractor = Extractor.getInstance();
           try {
             newsList = extractor.extract(topPageContent);
-          } catch (NaverJapanNewsParseException e) {
+          } catch (ParseException e) {
             Log.e(TAG, "Failed to parse NAVER Japan top page (NaverJapanNewsParseException)", e);
           }
         }
@@ -97,7 +97,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
       }
     }
 
-    NaverJapanNews news = newsList.get(newsIndex);
+    Topic news = newsList.get(newsIndex);
     newsIndex++;
     newsIndex %= newsList.size();
 
@@ -142,7 +142,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
       RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
-      NaverJapanNews news = getNextNews();
+      Topic news = getNextNews();
       // Log.i(TAG, "Next news: " + news);
 
       final DefaultHttpClient client = new DefaultHttpClient();
@@ -180,7 +180,7 @@ public class NaverJapanNewsWidget extends AppWidgetProvider {
         }
       }
 
-      ComponentName thisWidget = new ComponentName(this, NaverJapanNewsWidget.class);
+      ComponentName thisWidget = new ComponentName(this, Widget.class);
       AppWidgetManager manager = AppWidgetManager.getInstance(this);
       manager.updateAppWidget(thisWidget, updateViews);
       return super.onStartCommand(intent, flags, startId);
