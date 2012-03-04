@@ -27,6 +27,7 @@ import android.widget.RemoteViews;
 public class Widget extends AppWidgetProvider {
   private static final String TAG = Widget.class.getSimpleName();
   private static final int TOPIC_INTERVAL_SEC = 15;
+  private static final int TOPIC_ERROR_WAIT_SEC = 60;
   private static final int TOPIC_REFRESH_SEC = 1200;
   private static final int REQUEST_CODE = 0;
   private static final String NAVER_JAPAN_URL = "http://www.naver.jp/";
@@ -84,17 +85,23 @@ public class Widget extends AppWidgetProvider {
         InputStream topPageContent = Utils.getInputStreamViaHttp(client, NAVER_JAPAN_URL);
         if (topPageContent != null) {
           Extractor extractor = Extractor.getInstance();
-          try {
-            newsList = extractor.extract(topPageContent);
-          } catch (ParseException e) {
-            Log.e(TAG, "Failed to parse NAVER Japan top page (NaverJapanNewsParseException)", e);
-          }
+          newsList = extractor.extract(topPageContent);
         }
+      } catch (ParseException e) {
+        Log.e(TAG, "Failed to parse NAVER Japan top page (NaverJapanNewsParseException)", e);
       } finally {
         if (client != null && client.getConnectionManager() != null) {
           client.getConnectionManager().shutdown();
         }
       }
+    }
+
+    if (newsList == null) {
+      try {
+        Thread.sleep(TOPIC_ERROR_WAIT_SEC * 1000);
+      } catch (InterruptedException e) {
+      }
+      return null;
     }
 
     Topic news = newsList.get(newsIndex);
@@ -143,6 +150,8 @@ public class Widget extends AppWidgetProvider {
     public int onStartCommand(Intent intent, int flags, int startId) {
       RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
       Topic news = getNextNews();
+      if (news == null)
+        return super.onStartCommand(intent, flags, startId);
       // Log.i(TAG, "Next news: " + news);
 
       final DefaultHttpClient client = new DefaultHttpClient();
