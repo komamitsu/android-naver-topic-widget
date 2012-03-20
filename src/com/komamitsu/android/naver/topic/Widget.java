@@ -8,7 +8,6 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.BroadcastReceiver;
@@ -19,7 +18,6 @@ import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.RemoteViews;
@@ -34,14 +32,13 @@ public class Widget extends AppWidgetProvider {
   private static int newsIndex = 0;
   private static long lastUpdateTime = -1;
   private static List<Topic> newsList;
-  private static PendingIntent service;
+  private static PendingIntent pendingIntent;
   private static BroadcastReceiver wakeupReceiver;
   private static BroadcastReceiver sleepReceiver;
 
   @Override
   public void onEnabled(Context context) {
-    super.onEnabled(context);
-    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled() : this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled(): this=" + this);
 
     // set screen on receiver
     wakeupReceiver = new BroadcastReceiver() {
@@ -62,12 +59,20 @@ public class Widget extends AppWidgetProvider {
       }
     };
     context.getApplicationContext().registerReceiver(sleepReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+
+    setAlarm(context);
+
+    super.onEnabled(context);
   }
 
   @Override
-  public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.onUpdate(): this=" + this);
-    setAlarm(context);
+  public void onReceive(Context context, Intent intent) {
+    String action = intent.getAction();
+    MyLog.d(TAG, "NaverJapanNewsWidget.onReceive(): this=" + this + ", intent.action=" + action);
+    if (action == null || action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
+      updateView(context);
+    }
+    super.onReceive(context, intent);
   }
 
   public static Topic getNextNews() {
@@ -112,10 +117,9 @@ public class Widget extends AppWidgetProvider {
   }
 
   @Override
-  public void onDeleted(Context context, int[] appWidgetIds) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.onDelete(): this=" + this);
+  public void onDisabled(Context context) {
+    MyLog.d(TAG, "NaverJapanNewsWidget.onDisabled(): this=" + this);
     cancelAlarm(context);
-    context.stopService(new Intent(context, UpdateService.class));
 
     if (wakeupReceiver != null)
       context.unregisterReceiver(wakeupReceiver);
@@ -123,83 +127,76 @@ public class Widget extends AppWidgetProvider {
     if (sleepReceiver != null)
       context.unregisterReceiver(sleepReceiver);
 
-    super.onDeleted(context, appWidgetIds);
+    super.onDisabled(context);
   }
 
   private void setAlarm(Context context) {
     MyLog.d(TAG, "NaverJapanNewsWidget.setAlarm() this=" + this);
-    final Intent intent = new Intent(context, UpdateService.class);
-    if (service == null) {
-      service = PendingIntent.getService(context, REQUEST_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+    final Intent intent = new Intent(context, Widget.class);
+    if (pendingIntent == null) {
+      // service = PendingIntent.getService(context, REQUEST_CODE, intent,
+      // PendingIntent.FLAG_CANCEL_CURRENT);
+      pendingIntent = PendingIntent.getBroadcast(context, REQUEST_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT);
     }
     long firstTime = SystemClock.elapsedRealtime();
     AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     long interval = TOPIC_INTERVAL_SEC * 1000;
-    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, interval, service);
+    am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP, firstTime, interval, pendingIntent);
   }
 
   private void cancelAlarm(Context context) {
     AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-    am.cancel(service);
+    am.cancel(pendingIntent);
   }
 
-  public static class UpdateService extends Service {
-    private static WeakHashMap<String, Bitmap> imageCache = new WeakHashMap<String, Bitmap>();
+  private static WeakHashMap<String, Bitmap> imageCache = new WeakHashMap<String, Bitmap>();
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-      RemoteViews updateViews = new RemoteViews(this.getPackageName(), R.layout.widget_word);
-      Topic news = getNextNews();
-      if (news == null)
-        return super.onStartCommand(intent, flags, startId);
-      // Log.i(TAG, "Next news: " + news);
+  public void updateView(Context context) {
+    RemoteViews updateViews = new RemoteViews(context.getPackageName(), R.layout.widget_word);
+    Topic news = getNextNews();
+    if (news == null)
+      return;
+    // Log.i(TAG, "Next news: " + news);
 
-      final DefaultHttpClient client = new DefaultHttpClient();
-      try {
-        if (news.getImage() == null) {
-          Bitmap b = null;
-          String urlOfImage = news.getUrlOfImage();
-          // debug
-          if (Config.isDebug) {
-            for (String key : imageCache.keySet())
-              Log.d(TAG, "#### " + key);
-          }
-          if (imageCache.containsKey(urlOfImage)) {
-            b = imageCache.get(urlOfImage);
-            MyLog.d(TAG, "Found a image in cache: " + urlOfImage);
-          } else {
-            InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
-            if (imageStream != null) {
-              b = BitmapFactory.decodeStream(imageStream);
-              MyLog.d(TAG, "Downloaded the news image: " + urlOfImage);
-              imageCache.put(urlOfImage, b);
-            }
-          }
-          news.setImage(b);
+    final DefaultHttpClient client = new DefaultHttpClient();
+    try {
+      if (news.getImage() == null) {
+        Bitmap b = null;
+        String urlOfImage = news.getUrlOfImage();
+        // debug
+        if (Config.isDebug) {
+          for (String key : imageCache.keySet())
+            Log.d(TAG, "#### " + key);
         }
-        updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
-        String title = news.getRank() + "位 :  " + news.getTitle();
-        updateViews.setTextViewText(R.id.news_title, title);
-        updateViews.setTextViewText(R.id.news_detail, news.getDetail());
-        updateViews.setTextViewText(R.id.news_time, news.getTime());
-        Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(news.getUrlOfLink()));
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, webIntent, 0);
-        updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
-      } finally {
-        if (client != null && client.getConnectionManager() != null) {
-          client.getConnectionManager().shutdown();
+        if (imageCache.containsKey(urlOfImage)) {
+          b = imageCache.get(urlOfImage);
+          MyLog.d(TAG, "Found a image in cache: " + urlOfImage);
+        } else {
+          InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
+          if (imageStream != null) {
+            b = BitmapFactory.decodeStream(imageStream);
+            MyLog.d(TAG, "Downloaded the news image: " + urlOfImage);
+            imageCache.put(urlOfImage, b);
+          }
         }
+        news.setImage(b);
       }
-
-      ComponentName thisWidget = new ComponentName(this, Widget.class);
-      AppWidgetManager manager = AppWidgetManager.getInstance(this);
-      manager.updateAppWidget(thisWidget, updateViews);
-      return super.onStartCommand(intent, flags, startId);
+      updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
+      String title = news.getRank() + "位 :  " + news.getTitle();
+      updateViews.setTextViewText(R.id.news_title, title);
+      updateViews.setTextViewText(R.id.news_detail, news.getDetail());
+      updateViews.setTextViewText(R.id.news_time, news.getTime());
+      Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(news.getUrlOfLink()));
+      PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, webIntent, 0);
+      updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
+    } finally {
+      if (client != null && client.getConnectionManager() != null) {
+        client.getConnectionManager().shutdown();
+      }
     }
 
-    @Override
-    public IBinder onBind(Intent intent) {
-      return null;
-    }
+    ComponentName thisWidget = new ComponentName(context, Widget.class);
+    AppWidgetManager manager = AppWidgetManager.getInstance(context);
+    manager.updateAppWidget(thisWidget, updateViews);
   }
 }
