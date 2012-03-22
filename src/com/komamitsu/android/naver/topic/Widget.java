@@ -186,17 +186,22 @@ public class Widget extends AppWidgetProvider {
       updateViews.setTextViewText(R.id.news_title, title);
       updateViews.setTextViewText(R.id.news_detail, news.getDetail());
       updateViews.setTextViewText(R.id.news_time, news.getTime());
+
+      ComponentName thisWidget = new ComponentName(context, Widget.class);
+
       Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(news.getUrlOfLink()));
-      PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, webIntent, 0);
+      webIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+      webIntent.setComponent(thisWidget);
+
+      PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, webIntent, PendingIntent.FLAG_UPDATE_CURRENT);
       updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
+
+      AppWidgetManager manager = AppWidgetManager.getInstance(context);
+      manager.updateAppWidget(thisWidget, updateViews);
     } finally {
       if (client != null && client.getConnectionManager() != null) {
         client.getConnectionManager().shutdown();
       }
     }
-
-    ComponentName thisWidget = new ComponentName(context, Widget.class);
-    AppWidgetManager manager = AppWidgetManager.getInstance(context);
-    manager.updateAppWidget(thisWidget, updateViews);
   }
 }
