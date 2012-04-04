@@ -38,7 +38,7 @@ public class Widget extends AppWidgetProvider {
 
   @Override
   public void onEnabled(Context context) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled(): this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled(): context=" + context);
 
     // set screen on receiver
     wakeupReceiver = new BroadcastReceiver() {
@@ -68,7 +68,7 @@ public class Widget extends AppWidgetProvider {
   @Override
   public void onReceive(Context context, Intent intent) {
     String action = intent.getAction();
-    MyLog.d(TAG, "NaverJapanNewsWidget.onReceive(): this=" + this + ", intent.action=" + action);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onReceive(): context=" + context + ", intent.action=" + action);
     if (action == null || action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
       updateView(context);
     }
@@ -118,7 +118,7 @@ public class Widget extends AppWidgetProvider {
 
   @Override
   public void onDisabled(Context context) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.onDisabled(): this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.onDisabled(): context=" + context);
     cancelAlarm(context);
 
     if (wakeupReceiver != null)
@@ -131,7 +131,7 @@ public class Widget extends AppWidgetProvider {
   }
 
   private void setAlarm(Context context) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.setAlarm() this=" + this);
+    MyLog.d(TAG, "NaverJapanNewsWidget.setAlarm() context=" + context);
     final Intent intent = new Intent(context, Widget.class);
     if (pendingIntent == null) {
       // service = PendingIntent.getService(context, REQUEST_CODE, intent,
