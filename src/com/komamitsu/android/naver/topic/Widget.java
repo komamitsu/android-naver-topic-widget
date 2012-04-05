@@ -172,16 +172,25 @@ public class Widget extends AppWidgetProvider {
           b = imageCache.get(urlOfImage);
           MyLog.d(TAG, "Found a image in cache: " + urlOfImage);
         } else {
-          InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
-          if (imageStream != null) {
-            b = BitmapFactory.decodeStream(imageStream);
-            MyLog.d(TAG, "Downloaded the news image: " + urlOfImage);
-            imageCache.put(urlOfImage, b);
+          try {
+            InputStream imageStream = Utils.getInputStreamViaHttp(client, urlOfImage);
+            if (imageStream != null) {
+              b = BitmapFactory.decodeStream(imageStream);
+              MyLog.d(TAG, "Downloaded the news image: " + urlOfImage);
+              imageCache.put(urlOfImage, b);
+            }
+            news.setImage(b);
+          } catch (Exception e) {
+            Log.e(TAG, "Getting an image error, url=" + urlOfImage, e);
           }
         }
-        news.setImage(b);
       }
-      updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
+
+      if (news.getImage() != null) {
+        updateViews.setImageViewBitmap(R.id.news_image, news.getImage());
+      } else {
+        updateViews.setImageViewResource(R.id.news_image, R.drawable.noimage);
+      }
       String title = news.getRank() + "位 :  " + news.getTitle();
       updateViews.setTextViewText(R.id.news_title, title);
       updateViews.setTextViewText(R.id.news_detail, news.getDetail());
