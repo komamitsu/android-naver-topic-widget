@@ -211,10 +211,7 @@ public class Widget extends AppWidgetProvider {
       ComponentName thisWidget = new ComponentName(context, Widget.class);
 
       Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(news.getUrlOfLink()));
-      webIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-      webIntent.setComponent(thisWidget);
-
-      PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, webIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+      PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, webIntent, 0);
       updateViews.setOnClickPendingIntent(R.id.widget, pendingIntent);
 
       AppWidgetManager manager = AppWidgetManager.getInstance(context);
