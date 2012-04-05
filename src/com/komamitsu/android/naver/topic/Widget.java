@@ -37,10 +37,17 @@ public class Widget extends AppWidgetProvider {
   private static BroadcastReceiver sleepReceiver;
 
   @Override
-  public void onEnabled(Context context) {
-    MyLog.d(TAG, "NaverJapanNewsWidget.onEnabled(): context=" + context);
+  public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+    MyLog.d(TAG, "NaverJapanNewsWidget.onUpdate(): context=" + context);
+    initReceivers(context);
+    super.onUpdate(context, appWidgetManager, appWidgetIds);
+  }
 
+  private void initReceivers(Context context) {
     // set screen on receiver
+    if (wakeupReceiver != null)
+      context.unregisterReceiver(wakeupReceiver);
+
     wakeupReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(Context context, Intent intent) {
@@ -51,6 +58,9 @@ public class Widget extends AppWidgetProvider {
     context.getApplicationContext().registerReceiver(wakeupReceiver, new IntentFilter(Intent.ACTION_SCREEN_ON));
 
     // set screen off receiver
+    if (sleepReceiver != null)
+      context.unregisterReceiver(sleepReceiver);
+
     sleepReceiver = new BroadcastReceiver() {
       @Override
       public void onReceive(Context context, Intent intent) {
@@ -61,8 +71,6 @@ public class Widget extends AppWidgetProvider {
     context.getApplicationContext().registerReceiver(sleepReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
 
     setAlarm(context);
-
-    super.onEnabled(context);
   }
 
   @Override
@@ -121,11 +129,15 @@ public class Widget extends AppWidgetProvider {
     MyLog.d(TAG, "NaverJapanNewsWidget.onDisabled(): context=" + context);
     cancelAlarm(context);
 
-    if (wakeupReceiver != null)
+    if (wakeupReceiver != null) {
       context.unregisterReceiver(wakeupReceiver);
+      wakeupReceiver = null;
+    }
 
-    if (sleepReceiver != null)
+    if (sleepReceiver != null) {
       context.unregisterReceiver(sleepReceiver);
+      sleepReceiver = null;
+    }
 
     super.onDisabled(context);
   }
